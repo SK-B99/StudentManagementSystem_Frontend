@@ -1,11 +1,4 @@
-import type { Metadata } from "next";
 import "./globals.css";
-import Sidebar from "./components/Sidebar"; 
-
-export const metadata: Metadata = {
-  title: "StudentHub",
-  description: "Student Records Management System",
-};
 
 export default function RootLayout({
   children,
@@ -14,13 +7,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="bg-slate-50 text-slate-900">
-        <Sidebar />
-
-        <main className="min-h-screen md:ml-64">
-          {children}
-        </main>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

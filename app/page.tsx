@@ -1,251 +1,275 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  Users,
-  UserRound,
-  UserRoundCheck,
-  Search,
-  Plus,
+  BookOpen,
   GraduationCap,
+  Search,
+  UserRound,
+  Users,
 } from "lucide-react";
 
 import { getStudents } from "@/app/lib/api";
-import { Student } from "./types/students"; 
-import StatsCard from "./components/StatsCard"; 
+import { Student } from "./types/students";
+import DashboardHeader from "./components/DashboardHeader";
+
+function getInitials(student: Student) {
+  return `${student.firstName.charAt(0)}${student.lastName.charAt(0)}`.toUpperCase();
+}
 
 export default function HomePage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    async function fetchStudents() {
+    async function loadStudents() {
       try {
         const response = await getStudents();
-
         setStudents(response.data);
       } catch (error) {
         console.error("Failed to fetch students:", error);
+        setError(true);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchStudents();
+    loadStudents();
   }, []);
 
-  const filteredStudents = students.filter((student) => {
-    const searchTerm = search.toLowerCase();
+  const filteredStudents = useMemo(() => {
+    const term = search.trim().toLowerCase();
 
-    return (
-      student.firstName.toLowerCase().includes(searchTerm) ||
-      student.lastName.toLowerCase().includes(searchTerm) ||
-      student.studentId.toLowerCase().includes(searchTerm) ||
-      student.email.toLowerCase().includes(searchTerm)
-    );
-  });
+    if (!term) {
+      return students;
+    }
 
-  const maleStudents = students.filter(
-    (student) => student.gender === "Male"
-  ).length;
+    return students.filter((student) => {
+      const values = [
+        student.firstName,
+        student.lastName,
+        student.studentId,
+        student.email,
+        student.department,
+        student.program,
+      ];
 
-  const femaleStudents = students.filter(
-    (student) => student.gender === "Female"
-  ).length;
+      return values.some((value) =>
+        value?.toLowerCase().includes(term)
+      );
+    });
+  }, [students, search]);
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-slate-500">
-          Loading dashboard...
-        </p>
-      </div>
-    );
-  }
+  const totalStudents = students.length;
+
+  const programsRepresented = new Set(
+    students
+      .map((student) => student.program)
+      .filter(Boolean)
+  ).size;
+
+  const stats = [
+    {
+      label: "Total students",
+      value: totalStudents,
+      icon: Users,
+    },
+    {
+      label: "Active students",
+      value: totalStudents,
+      icon: GraduationCap,
+    },
+    {
+      label: "Programs represented",
+      value: programsRepresented,
+      icon: BookOpen,
+    },
+  ];
 
   return (
-    <main className="p-6 md:p-10">
+    <div className="min-h-screen bg-white">
+      <DashboardHeader />
 
-      {/* Header */}
-      <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Dashboard
+      <main className="mx-auto max-w-[1420px] px-6 pb-16 lg:px-0">
+        <section className="pt-10">
+          <div className="flex items-center gap-2 text-sm text-black">
+            <span>Overview</span>
+            <span className="text-gray-400">/</span>
+            <span className="font-medium">2026</span>
+          </div>
+
+          <h1 className="mt-5 text-[34px] font-semibold leading-tight tracking-[-0.03em] text-black sm:text-[38px]">
+            Keep your student directory current.
           </h1>
 
-          <p className="mt-1 text-slate-500">
-            Overview of your student records.
+          <p className="mt-2 text-[17px] text-gray-500">
+            A simple, focused place to view, update, and manage student
+            information.
           </p>
-        </div>
+        </section>
 
-        <Link
-          href="/students/new"
-          className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-blue-700"
-        >
-          <Plus size={18} />
-          Add Student
-        </Link>
-      </div>
+        <section className="mt-10 grid gap-5 md:grid-cols-3">
+          {stats.map(({ label, value, icon: Icon }) => (
+            <div
+              key={label}
+              className="min-h-[194px] rounded-[17px] border border-gray-200 bg-white p-6"
+            >
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-100">
+                <Icon size={22} strokeWidth={1.7} />
+              </div>
 
-      {/* Statistics */}
-      <div className="mb-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        <StatsCard
-          title="Total Students"
-          value={students.length}
-          description="Registered student records"
-          icon={Users}
-        />
+              <div className="mt-7">
+                <p className="text-[16px] text-gray-500">{label}</p>
 
-        <StatsCard
-          title="Male Students"
-          value={maleStudents}
-          description="Currently registered"
-          icon={UserRound}
-        />
+                <p className="mt-1 text-[35px] font-medium tracking-tight">
+                  {loading ? "—" : value}
+                </p>
+              </div>
+            </div>
+          ))}
+        </section>
 
-        <StatsCard
-          title="Female Students"
-          value={femaleStudents}
-          description="Currently registered"
-          icon={UserRoundCheck}
-        />
-      </div>
+        <section className="mt-10 overflow-hidden rounded-[17px] border border-gray-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+          <div className="flex flex-col justify-between gap-5 border-b border-gray-200 px-5 py-5 sm:px-6 lg:flex-row lg:items-center">
+            <div>
+              <h2 className="text-[18px] font-semibold">All students</h2>
 
-      {/* Student Records */}
-      <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
+              <p className="mt-1 text-[15px] text-gray-500">
+                {filteredStudents.length}{" "}
+                {filteredStudents.length === 1 ? "record" : "records"} shown
+              </p>
+            </div>
 
-        {/* Section Header */}
-        <div className="flex flex-col gap-4 border-b border-slate-100 p-6 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold">
-              Student Records
-            </h2>
-
-            <p className="text-sm text-slate-500">
-              View and manage all registered students.
-            </p>
-          </div>
-
-          {/* Search */}
-          <div className="relative w-full lg:w-80">
-            <Search
-              size={18}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-
-            <input
-              type="text"
-              placeholder="Search students..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            />
-          </div>
-        </div>
-
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Student
-                </th>
-
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Student ID
-                </th>
-
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Department
-                </th>
-
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Program
-                </th>
-
-                <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Action
-                </th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y divide-slate-100">
-              {filteredStudents.map((student) => (
-                <tr
-                  key={student.id}
-                  className="transition hover:bg-slate-50"
-                >
-                  {/* Student */}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 font-semibold text-blue-600">
-                        {student.firstName.charAt(0)}
-                        {student.lastName.charAt(0)}
-                      </div>
-
-                      <div>
-                        <p className="font-medium text-slate-900">
-                          {student.firstName} {student.lastName}
-                        </p>
-
-                        <p className="text-sm text-slate-500">
-                          {student.email}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Student ID */}
-                  <td className="px-6 py-4 text-sm text-slate-600">
-                    {student.studentId}
-                  </td>
-
-                  {/* Department */}
-                  <td className="px-6 py-4 text-sm text-slate-600">
-                    {student.department || "-"}
-                  </td>
-
-                  {/* Program */}
-                  <td className="px-6 py-4 text-sm text-slate-600">
-                    {student.program || "-"}
-                  </td>
-
-                  {/* Action */}
-                  <td className="px-6 py-4 text-right">
-                    <Link
-                      href={`/students/${student.id}`}
-                      className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
-                    >
-                      <GraduationCap size={16} />
-                      View
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {filteredStudents.length === 0 && (
-            <div className="py-16 text-center">
-              <Users
-                size={40}
-                className="mx-auto mb-3 text-slate-300"
+            <div className="relative">
+              <Search
+                size={19}
+                strokeWidth={1.7}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"
               />
 
-              <h3 className="font-medium text-slate-700">
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search students..."
+                aria-label="Search students"
+                className="h-12 w-full rounded-xl border border-gray-200 bg-white pl-11 pr-4 text-[15px] outline-none transition placeholder:text-gray-500 focus:border-gray-400 sm:w-[315px]"
+              />
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="flex min-h-[300px] items-center justify-center">
+              <p className="text-sm text-gray-500">Loading students...</p>
+            </div>
+          ) : error ? (
+            <div className="flex min-h-[300px] items-center justify-center px-6 text-center">
+              <div>
+                <h3 className="font-semibold">Unable to load students</h3>
+                <p className="mt-2 text-sm text-gray-500">
+                  Something went wrong while loading the directory.
+                </p>
+              </div>
+            </div>
+          ) : filteredStudents.length === 0 ? (
+            <div className="flex min-h-[310px] flex-col items-center justify-center px-6 text-center">
+              <div className="mb-5 text-gray-400">
+                <UserRound size={45} strokeWidth={1.4} />
+              </div>
+
+              <h3 className="text-[18px] font-semibold">
                 No students found
               </h3>
 
-              <p className="mt-1 text-sm text-slate-500">
-                Try adjusting your search.
+              <p className="mt-2 text-[16px] text-gray-500">
+                Add a student or adjust your search.
               </p>
+
+              <Link
+                href="/students/new"
+                className="mt-5 rounded-lg bg-black px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
+              >
+                Add student
+              </Link>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px]">
+                <thead>
+                  <tr className="border-b border-gray-200 bg-gray-50/60">
+                    <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      Student
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      Student ID
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      Department
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      Program
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {filteredStudents.map((student) => (
+                    <tr
+                      key={student.id}
+                      className="border-b border-gray-100 last:border-0 hover:bg-gray-50/70"
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-semibold text-gray-700">
+                            {getInitials(student)}
+                          </div>
+
+                          <div>
+                            <p className="font-medium text-black">
+                              {student.firstName} {student.lastName}
+                            </p>
+
+                            <p className="mt-0.5 text-sm text-gray-500">
+                              {student.email}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {student.studentId}
+                      </td>
+
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {student.department || "—"}
+                      </td>
+
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {student.program || "—"}
+                      </td>
+
+                      <td className="px-6 py-4 text-right">
+                        <Link
+                          href={`/students/${student.id}`}
+                          className="text-sm font-medium text-black underline-offset-4 hover:underline"
+                        >
+                          View
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
-        </div>
-      </section>
-    </main>
+        </section>
+      </main>
+    </div>
   );
 }

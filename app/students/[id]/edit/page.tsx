@@ -3,9 +3,14 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-import StudentForm from "@/app/components/StudentForm"; 
-import { getStudent, updateStudent } from "@/app/lib/api"
-import { StudentFormData } from "@/app/lib/student-schema"; 
+import StudentForm from "@/app/components/StudentForm";
+import Delete from "@/app/components/DeleteStudentButton"; 
+import {
+  deleteStudent,
+  getStudent,
+  updateStudent,
+} from "@/app/lib/api";
+import { StudentFormData } from "@/app/lib/student-schema";
 
 export default function EditStudentPage() {
   const params = useParams();
@@ -63,37 +68,65 @@ export default function EditStudentPage() {
     }
   };
 
+  const handleDeleted = () => {
+    router.push("/");
+  };
+
   if (loading) {
     return (
-      <div className="p-8 text-center">
-        Loading student...
-      </div>
+      <main className="mx-auto max-w-2xl p-8">
+        <p className="text-center text-sm text-gray-500">
+          Loading student...
+        </p>
+      </main>
     );
   }
 
   if (!student) {
     return (
-      <div className="p-8 text-center">
-        Student not found
-      </div>
+      <main className="mx-auto max-w-2xl p-8">
+        <p className="text-center text-sm text-gray-500">
+          Student not found
+        </p>
+      </main>
     );
   }
 
   return (
-    <main className="max-w-2xl mx-auto p-8">
-      <h1 className="text-3xl font-bold mb-2">
-        Edit Student
-      </h1>
+    <main className="mx-auto max-w-2xl px-6 py-10">
+      <div className="mb-8">
+        <h1 className="text-3xl font-semibold tracking-tight text-black">
+          Edit Student
+        </h1>
 
-      <p className="text-gray-500 mb-8">
-        Update the student's information below.
-      </p>
+        <p className="mt-2 text-gray-500">
+          Update the student's information below.
+        </p>
+      </div>
 
       <StudentForm
         initialData={student}
         onSubmit={handleUpdate}
         submitText="Update Student"
       />
+
+      <section className="mt-10 border-t border-gray-200 pt-8">
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-black">
+            Delete student
+          </h2>
+
+          <p className="mt-1 text-sm text-gray-500">
+            Permanently remove this student from the directory.
+            This action cannot be undone.
+          </p>
+        </div>
+
+        <Delete
+          studentId={id}
+          onDeleted={handleDeleted}
+        />
+      </section>
     </main>
   );
 }

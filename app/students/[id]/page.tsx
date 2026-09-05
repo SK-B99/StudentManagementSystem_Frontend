@@ -1,5 +1,6 @@
-import { getStudent } from "@/app/lib/api"; 
+import { getStudent } from "@/app/lib/api";
 import Link from "next/link";
+import Delete from "@/app/components/DeleteStudentButton";
 
 interface Props {
   params: Promise<{
@@ -15,25 +16,32 @@ export default async function StudentDetailsPage({
   const student = await getStudent(id);
 
   return (
-    <main className="max-w-3xl mx-auto p-8">
+    <main className="mx-auto max-w-3xl p-8">
+      <Link
+        href="/"
+        className="mb-6 inline-block text-sm text-gray-600 hover:text-black"
+      >
+        ← Back to Home
+      </Link>
 
-      <div className="flex justify-between mb-8">
-
+      <div className="mb-8 flex items-center justify-between">
         <h1 className="text-3xl font-bold">
           Student Details
         </h1>
 
-        <Link
-          href={`/students/${id}/edit`}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg"
-        >
-          Edit Student
-        </Link>
+        <div className="flex gap-3">
+          <Link
+            href={`/students/${id}/edit`}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+          >
+            Edit Student
+          </Link>
 
+          <Delete studentId={id} />
+        </div>
       </div>
 
-      <div className="border rounded-xl p-6 space-y-4">
-
+      <div className="space-y-4 rounded-xl border p-6">
         <p>
           <strong>Student ID:</strong>{" "}
           {student.studentId}
@@ -68,9 +76,7 @@ export default async function StudentDetailsPage({
           <strong>Gender:</strong>{" "}
           {student.gender || "-"}
         </p>
-
       </div>
-
     </main>
   );
 }

@@ -1,43 +1,43 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 
 import { deleteStudent } from "@/app/lib/api";
 
 interface DeleteProps {
   studentId: string;
-  onDeleted?: () => void;
 }
 
-export default function Delete({
-  studentId,
-  onDeleted,
-}: DeleteProps) {
+export default function Delete({ studentId }: DeleteProps) {
   const [deleting, setDeleting] = useState(false);
+  const router = useRouter();
 
-  async function handleDelete() {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this student? This action cannot be undone."
-    );
+ async function handleDelete() {
+  const confirmed = window.confirm(
+    "Are you sure you want to delete this student? This action cannot be undone."
+  );
 
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      setDeleting(true);
-
-      await deleteStudent(studentId);
-
-      onDeleted?.();
-    } catch (error) {
-      console.error("Failed to delete student:", error);
-      window.alert("Failed to delete student. Please try again.");
-    } finally {
-      setDeleting(false);
-    }
+  if (!confirmed) {
+    return;
   }
+
+  try {
+    setDeleting(true);
+
+    await deleteStudent(studentId);
+
+    router.push("/");
+  } catch (error) {
+    console.error("Failed to delete student:", error);
+
+    window.alert("Failed to delete student. Please try again.");
+
+    setDeleting(false);
+  }
+}
+
 
   return (
     <button

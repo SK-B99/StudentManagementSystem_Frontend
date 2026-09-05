@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -19,6 +20,10 @@ export default function StudentForm({
   onSubmit,
   submitText = "Save Student",
 }: StudentFormProps) {
+  const [submitError, setSubmitError] = useState<string | null>(
+    null,
+  );
+
   const {
     register,
     handleSubmit,
@@ -28,8 +33,26 @@ export default function StudentForm({
     defaultValues: initialData,
   });
 
+  async function handleFormSubmit(data: StudentFormData) {
+    setSubmitError(null);
+
+    try {
+      await onSubmit(data);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Something went wrong while saving the student.";
+
+      setSubmitError(message);
+    }
+  }
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+    <form
+      onSubmit={handleSubmit(handleFormSubmit)}
+      className="space-y-8"
+    >
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <label
@@ -217,6 +240,15 @@ export default function StudentForm({
           />
         </div>
       </div>
+
+      {submitError && (
+        <div
+          role="alert"
+          className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          {submitError}
+        </div>
+      )}
 
       <div className="flex justify-end border-t border-gray-100 pt-6">
         <button

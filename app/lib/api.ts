@@ -6,38 +6,104 @@ import {
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 if (!API_URL) {
-  throw new Error(
-    "NEXT_PUBLIC_API_URL is not defined"
-  );
+  throw new Error("NEXT_PUBLIC_API_URL is not defined");
 }
 
-export async function getStudents(): Promise<StudentsResponse> {
-  const response = await fetch(`${API_URL}/students`);
+interface GetStudentsParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  department?: string;
+  program?: string;
+}
+
+async function getErrorMessage(
+  response: Response,
+  fallback: string,
+): Promise<string> {
+  try {
+    const body = await response.json();
+
+    if (typeof body.message === "string") {
+      return body.message;
+    }
+
+    if (Array.isArray(body.message)) {
+      return body.message.join(", ");
+    }
+
+    return fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export async function getStudents(
+  params: GetStudentsParams = {},
+): Promise<StudentsResponse> {
+  const {
+    page = 1,
+    limit = 10,
+    search,
+    department,
+    program,
+  } = params;
+
+  const queryParams = new URLSearchParams();
+
+  queryParams.set("page", String(page));
+  queryParams.set("limit", String(limit));
+
+  if (search?.trim()) {
+    queryParams.set("search", search.trim());
+  }
+
+  if (department?.trim()) {
+    queryParams.set("department", department.trim());
+  }
+
+  if (program?.trim()) {
+    queryParams.set("program", program.trim());
+  }
+
+  const response = await fetch(
+    `${API_URL}/students?${queryParams.toString()}`,
+  );
 
   if (!response.ok) {
-    const error = await response.text();
-
-    throw new Error(
-      `Failed to fetch students: ${response.status} - ${error}`
+    const message = await getErrorMessage(
+      response,
+      `Failed to fetch students (${response.status})`,
     );
+
+    throw new Error(message);
   }
 
   return response.json();
 }
 
 export async function getStudent(
-  id: number | string
+  id: number | string,
 ): Promise<Student> {
-  const response = await fetch(`${API_URL}/students/${id}`);
+  const response = await fetch(
+    `${API_URL}/students/${id}`,
+  );
 
   if (!response.ok) {
-    throw new Error("Failed to fetch student");
+    const message = await getErrorMessage(
+      response,
+      `Failed to fetch student (${response.status})`,
+    );
+
+    throw new Error(message);
   }
 
   return response.json();
 }
 
-export async function createStudent(data: Partial<Student>) {
+export async function createStudent(
+  data: Partial<Student>,
+) {
   const response = await fetch(`${API_URL}/students`, {
     method: "POST",
     headers: {
@@ -47,49 +113,62 @@ export async function createStudent(data: Partial<Student>) {
   });
 
   if (!response.ok) {
-    const error = await response.text();
+    const errorBody = await response.json();
+
     throw new Error(
-      `Failed to create student: ${response.status} - ${error}`
+      errorBody.message ||
+        `Failed to create student (${response.status})`,
     );
   }
 
   return response.json();
 }
 
+
 export async function updateStudent(
   id: number | string,
-  data: Partial<Student>
+  data: Partial<Student>,
 ) {
-  const response = await fetch(`${API_URL}/students/${id}`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
+  const response = await fetch(
+    `${API_URL}/students/${id}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
     },
-    body: JSON.stringify(data),
-  });
+  );
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(
-      `Failed to update student: ${response.status} - ${error}`
+    const message = await getErrorMessage(
+      response,
+      `Failed to update student (${response.status})`,
     );
+
+    throw new Error(message);
   }
 
   return response.json();
 }
 
 export async function deleteStudent(
-  id: number | string
+  id: number | string,
 ) {
-  const response = await fetch(`${API_URL}/students/${id}`, {
-    method: "DELETE",
-  });
+  const response = await fetch(
+    `${API_URL}/students/${id}`,
+    {
+      method: "DELETE",
+    },
+  );
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(
-      `Failed to delete student: ${response.status} - ${error}`
+    const message = await getErrorMessage(
+      response,
+      `Failed to delete student (${response.status})`,
     );
+
+    throw new Error(message);
   }
 
   return response.json();
